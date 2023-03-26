@@ -56,23 +56,28 @@ all_medias = []
 name_collisions = []
 hash_collisions_count = 0
 copied_medias_count = 0
+hash_to_media_map = {}
 csv_file_path = os.path.join(args.input_path, "_uploader_batch_copy.csv")
-file_exists = os.path.isfile(csv_file_path)
+fieldnames = ["relative_root", "media_name", "sha256", "copy_timestamp"]
 
 update_progress(0)
 
-with open(csv_file_path, "a+") as csvfile:
-    # Write headers to csv if needed
-    fieldnames = ["relative_root", "media_name", "sha256", "copy_timestamp"]
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-    if not file_exists:
+file_exists = os.path.isfile(csv_file_path)
+if file_exists:
+    # Load current csv into a dict
+    with open(csv_file_path, "r") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            hash_to_media_map[row["sha256"]] = row
+else:
+    # Create the csv file
+    with open(csv_file_path, "a") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
-    # Load current csv into a dict
-    reader = csv.DictReader(csvfile)
-    hash_to_media_map = {}
-    for row in reader:
-        hash_to_media_map[row["sha256"]] = row
+
+with open(csv_file_path, "a") as csvfile:
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
     # Find all media files
     for root, dirs, files in os.walk(args.input_path):
