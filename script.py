@@ -78,6 +78,10 @@ with open(csv_file_path, "a+") as csvfile:
 
     # Find all media files
     for root, dirs, files in os.walk(args.input_path):
+        # Skip Windows recycle bin path
+        if "$Recycle.Bin" in root:
+            continue
+
         medias = [f for f in files if f.lower().endswith(supported_extensions)]
         for media in medias:
             all_medias.append({"name": media, "root": root})
