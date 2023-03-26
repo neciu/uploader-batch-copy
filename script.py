@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import argparse
 import os
 import csv
@@ -7,7 +5,6 @@ import hashlib
 from datetime import datetime
 import shutil
 import sys
-import time
 
 
 # Source https://stackoverflow.com/a/15860757/1035552
@@ -43,12 +40,24 @@ parser.add_argument("--output_path")
 
 args = parser.parse_args()
 
-batch_size = 2
-supported_extensions = (".jpg", ".jpeg", ".png")
-all_images = []
+batch_size = 1000
+supported_extensions = (
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".AVI",
+    ".CR2",
+    ".JPG",
+    ".MOV",
+    ".MP4",
+    ".MPG",
+    ".MTS",
+    ".mp4",
+)
+all_medias = []
 name_collisions = []
 hash_collisions_count = 0
-copied_images_count = 0
+copied_medias_count = 0
 csv_file_path = os.path.join(args.input_path, "_uploader_batch_copy.csv")
 file_exists = os.path.isfile(csv_file_path)
 
@@ -56,69 +65,71 @@ update_progress(0)
 
 with open(csv_file_path, "a+") as csvfile:
     # Write headers to csv if needed
-    fieldnames = ["relative_root", "image_name", "sha256", "copy_timestamp"]
+    fieldnames = ["relative_root", "media_name", "sha256", "copy_timestamp"]
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     if not file_exists:
         writer.writeheader()
 
     # Load current csv into a dict
     reader = csv.DictReader(csvfile)
-    hash_to_image_map = {}
+    hash_to_media_map = {}
     for row in reader:
-        hash_to_image_map[row["sha256"]] = row
+        hash_to_media_map[row["sha256"]] = row
 
     # Find all media files
     for root, dirs, files in os.walk(args.input_path):
-        images = [f for f in files if f.lower().endswith(supported_extensions)]
-        for image in images:
-            all_images.append({"name": image, "root": root})
+        medias = [f for f in files if f.lower().endswith(supported_extensions)]
+        for media in medias:
+            all_medias.append({"name": media, "root": root})
 
     # Process media files
-    for image in all_images:
+    for media in all_medias:
         # Stop processing if batch size is reached
-        if copied_images_count >= batch_size:
+        if copied_medias_count >= batch_size:
             break
 
-        root = image["root"]
+        root = media["root"]
         relative_root = os.path.relpath(root, args.input_path)
-        name = image["name"]
-        image_path = os.path.join(root, name)
+        name = media["name"]
+        media_path = os.path.join(root, name)
 
         # Skip name collisions
         if name in os.listdir(args.output_path):
             name_collisions.append(os.path.join(relative_root, name))
             continue
 
-        with open(image_path, "rb") as image_file:
-            contents = image_file.read()
+        with open(media_path, "rb") as media_file:
+            contents = media_file.read()
             hash_str = hashlib.sha256(contents).hexdigest()
 
             # Skip hash collisions
-            if hash_str in hash_to_image_map:
+            if hash_str in hash_to_media_map:
                 hash_collisions_count += 1
                 continue
 
             # Copy file and save it's hash to the csv and memory
-            shutil.copy2(image_path, args.output_path)
+            shutil.copy2(media_path, args.output_path)
             new_row = {
                 "relative_root": relative_root,
-                "image_name": name,
+                "media_name": name,
                 "sha256": hash_str,
                 "copy_timestamp": datetime.now().astimezone().isoformat(),
             }
             writer.writerow(new_row)
-            hash_to_image_map["hash_str"] = new_row
+            hash_to_media_map["hash_str"] = new_row
 
-        copied_images_count += 1
-        update_progress(copied_images_count / batch_size)
-        time.sleep(0.001)
+        copied_medias_count += 1
+        update_progress(copied_medias_count / batch_size)
 
-update_progress(1+copied_images_count / batch_size)
+# Displays 100% progress in case when batch finishes before it's max size
+if copied_medias_count / batch_size < 1:
+    update_progress(1)
+
 print("")
-print(f"All images count: {len(all_images)}.")
+print(f"All medias count: {len(all_medias)}.")
 print(f"Name collisions count: {len(name_collisions)}.")
 print(f"Hash collisions count: {hash_collisions_count}.")
-print(f"Copied images count: {copied_images_count}.")
+print(f"Copied medias count: {copied_medias_count}.")
 
 if len(name_collisions) > 0:
     print("")
