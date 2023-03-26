@@ -45,14 +45,12 @@ supported_extensions = (
     ".jpg",
     ".jpeg",
     ".png",
-    ".AVI",
-    ".CR2",
-    ".JPG",
-    ".MOV",
-    ".MP4",
-    ".MPG",
-    ".MTS",
+    ".avi",
+    ".cr2",
+    ".mov",
     ".mp4",
+    ".mpg",
+    ".mts",
 )
 all_medias = []
 name_collisions = []
@@ -79,7 +77,7 @@ with open(csv_file_path, "a+") as csvfile:
     # Find all media files
     for root, dirs, files in os.walk(args.input_path):
         # Skip Windows recycle bin path
-        if "$Recycle.Bin" in root:
+        if "$recycle.bin" in root.lower():
             continue
 
         medias = [f for f in files if f.lower().endswith(supported_extensions)]
