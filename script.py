@@ -40,7 +40,7 @@ parser.add_argument("--output_path")
 
 args = parser.parse_args()
 
-batch_size = 1000
+batch_size = 2000
 supported_extensions = (
     ".jpg",
     ".jpeg",
